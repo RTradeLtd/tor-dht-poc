@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cretz/tor-dht-poc/go-tor-dht-poc/tordht"
+	"github.com/cretz/tor-dht-poc/go-i2p-dht-poc/i2pdht"
 	cid "github.com/ipfs/go-cid"
 	datastore "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/sync"
@@ -20,7 +20,7 @@ import (
 type impl struct{}
 
 var ipfsImpl = impl{}
-var Impl tordht.Impl = ipfsImpl
+var Impl i2pdht.Impl = ipfsImpl
 
 const minPeersRequired = 2
 
@@ -37,8 +37,8 @@ func (impl) RawStringDataID(id []byte) (string, error) {
 	}
 }
 
-func (impl) NewDHT(ctx context.Context, conf *tordht.DHTConf) (tordht.DHT, error) {
-	t := &torDHT{debug: conf.Verbose, tor: conf.Tor}
+func (impl) NewDHT(ctx context.Context, conf *i2pdht.DHTConf) (i2pdht.DHT, error) {
+	t := &i2pDHT{debug: conf.Verbose, i2p: conf.I2P}
 	// Close the dht on any error when creating, so make sure err is populated before returning
 	var err error
 	defer func() {
@@ -47,19 +47,19 @@ func (impl) NewDHT(ctx context.Context, conf *tordht.DHTConf) (tordht.DHT, error
 		}
 	}()
 
-	// Create the host with only the tor transport
+	// Create the host with only the i2p transport
 	t.debugf("Creating host")
-	transportConf := &TorTransportConf{
+	transportConf := &I2PTransportConf{
 		WebSocket: true,
 	}
 	hostOpts := []libp2p.Option{
 		// libp2p.NoSecurity,
 		libp2p.Muxer("/mplex/6.7.0", mplex.DefaultTransport),
-		libp2p.Transport(NewTorTransport(conf.Tor, transportConf)),
+		libp2p.Transport(NewI2PTransport(conf.I2P, transportConf)),
 	}
 	if !conf.ClientOnly {
 		// Add an address to listen to
-		hostOpts = append(hostOpts, libp2p.ListenAddrs(onionListenAddr))
+		hostOpts = append(hostOpts, libp2p.ListenAddrs(garlicListenAddr))
 	}
 	if t.ipfsHost, err = libp2p.New(ctx, hostOpts...); err != nil {
 		return nil, fmt.Errorf("Failed creating host: %v", err)
@@ -102,6 +102,7 @@ func (impl) hashedCID(v []byte) (*cid.Cid, error) {
 	if hash, err := multihash.Sum(v, multihash.SHA3_256, -1); err != nil {
 		return nil, fmt.Errorf("Failed hashing ID: %v", err)
 	} else {
-		return cid.NewCidV1(0, hash), nil
+		c := cid.NewCidV1(0, hash)
+		return &c, nil
 	}
 }

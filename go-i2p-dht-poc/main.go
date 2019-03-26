@@ -7,8 +7,8 @@ import (
 	"os"
 
 	//"github.com/eyedeekay/sam3"
-	"github.com/rtradeltd/tor-dht-poc/go-i2p-dht-poc/i2pdht"
-	"github.com/rtradeltd/tor-dht-poc/go-i2p-dht-poc/i2pdht/ipfs"
+	"github.com/cretz/tor-dht-poc/go-i2p-dht-poc/i2pdht"
+	"github.com/cretz/tor-dht-poc/go-i2p-dht-poc/i2pdht/ipfs"
 )
 
 // Change to true to see lots of logs
@@ -16,7 +16,7 @@ const debug = false
 const participatingPeerCount = 5
 const dataID = "tor-dht-poc-test"
 
-var impl tordht.Impl = ipfs.Impl
+var impl i2pdht.Impl = ipfs.Impl
 
 func main() {
 	if err := run(); err != nil {
@@ -46,22 +46,22 @@ func provide(args []string) error {
 	defer cancelFn()
 
 	// Fire up tor
-	bineTor, err := startTor(ctx, "data-dir-temp-provide")
+	samI2P, err := startI2P(ctx, "data-dir-temp-provide")
 	if err != nil {
 		return fmt.Errorf("Failed starting tor: %v", err)
 	}
-	defer bineTor.Close()
+	defer samI2P.Close()
 
 	// Make multiple DHTs, passing the known set to the other ones for connecting
 	log.Printf("Creating %v peers", participatingPeerCount)
-	dhts := make([]tordht.DHT, participatingPeerCount)
-	prevPeers := []*tordht.PeerInfo{}
+	dhts := make([]i2pdht.DHT, participatingPeerCount)
+	prevPeers := []*i2pdht.PeerInfo{}
 	for i := 0; i < len(dhts); i++ {
 		// Start DHT
-		conf := &tordht.DHTConf{
-			Tor:            bineTor,
+		conf := &i2pdht.DHTConf{
+			Tor:            samI2P,
 			Verbose:        debug,
-			BootstrapPeers: make([]*tordht.PeerInfo, len(prevPeers)),
+			BootstrapPeers: make([]*i2pdht.PeerInfo, len(prevPeers)),
 		}
 		copy(conf.BootstrapPeers, prevPeers)
 		dht, err := impl.NewDHT(ctx, conf)
@@ -96,19 +96,19 @@ func find(args []string) error {
 
 	// Get all the peers from the args
 	var err error
-	dhtConf := &tordht.DHTConf{
+	dhtConf := &i2pdht.DHTConf{
 		ClientOnly:     true,
 		Verbose:        debug,
-		BootstrapPeers: make([]*tordht.PeerInfo, len(args)),
+		BootstrapPeers: make([]*i2pdht.PeerInfo, len(args)),
 	}
 	for i := 0; i < len(args); i++ {
-		if dhtConf.BootstrapPeers[i], err = tordht.NewPeerInfo(args[i]); err != nil {
+		if dhtConf.BootstrapPeers[i], err = i2pdht.NewPeerInfo(args[i]); err != nil {
 			return fmt.Errorf("Failed parsing arg #%v: %v", i+1, err)
 		}
 	}
 
 	// Fire up tor
-	if dhtConf.Tor, err = startTor(ctx, "data-dir-temp-find"); err != nil {
+	if dhtConf.Tor, err = startI2P(ctx, "data-dir-temp-find"); err != nil {
 		return fmt.Errorf("Failed starting tor: %v", err)
 	}
 	defer dhtConf.Tor.Close()
@@ -131,7 +131,7 @@ func find(args []string) error {
 	return nil
 }
 
-func startTor(ctx context.Context, dataDir string) (*tor.Tor, error) {
+func startI2P(ctx context.Context, dataDir string) (*tor.Tor, error) {
 	startConf := &tor.StartConf{DataDir: dataDir}
 	if debug {
 		impl.ApplyDebugLogging()

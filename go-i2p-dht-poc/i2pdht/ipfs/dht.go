@@ -6,8 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/cretz/bine/tor"
-	"github.com/cretz/tor-dht-poc/go-tor-dht-poc/tordht"
+	"github.com/cretz/tor-dht-poc/go-i2p-dht-poc/i2pdht"
 	host "github.com/libp2p/go-libp2p-host"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	peer "github.com/libp2p/go-libp2p-peer"
@@ -16,17 +15,18 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 
 	addr "github.com/ipfs/go-ipfs-addr"
+    "github.com/eyedeekay/sam3"
 )
 
-type torDHT struct {
+type i2pDHT struct {
 	debug    bool
-	tor      *tor.Tor
+	i2p      *sam3.SAM
 	ipfsHost host.Host
 	ipfsDHT  *dht.IpfsDHT
-	peerInfo *tordht.PeerInfo
+	peerInfo *i2pdht.PeerInfo
 }
 
-func (t *torDHT) Close() (err error) {
+func (t *i2pDHT) Close() (err error) {
 	if t.ipfsDHT != nil {
 		err = t.ipfsDHT.Close()
 	}
@@ -39,25 +39,25 @@ func (t *torDHT) Close() (err error) {
 	return
 }
 
-func (t *torDHT) PeerInfo() *tordht.PeerInfo { return t.peerInfo }
+func (t *i2pDHT) PeerInfo() *i2pdht.PeerInfo { return t.peerInfo }
 
-func (t *torDHT) Provide(ctx context.Context, id []byte) error {
+func (t *i2pDHT) Provide(ctx context.Context, id []byte) error {
 	if cid, err := ipfsImpl.hashedCID(id); err != nil {
 		return err
 	} else {
 		t.debugf("Providing CID: %v", cid)
-		return t.ipfsDHT.Provide(ctx, cid, true)
+		return t.ipfsDHT.Provide(ctx, *cid, true)
 	}
 }
 
-func (t *torDHT) FindProviders(ctx context.Context, id []byte, maxCount int) ([]*tordht.PeerInfo, error) {
+func (t *i2pDHT) FindProviders(ctx context.Context, id []byte, maxCount int) ([]*i2pdht.PeerInfo, error) {
 	cid, err := ipfsImpl.hashedCID(id)
 	if err != nil {
 		return nil, err
 	}
 	t.debugf("Finding providers for CID: %v", cid)
-	ret := []*tordht.PeerInfo{}
-	for p := range t.ipfsDHT.FindProvidersAsync(ctx, cid, maxCount) {
+	ret := []*i2pdht.PeerInfo{}
+	for p := range t.ipfsDHT.FindProvidersAsync(ctx, *cid, maxCount) {
 		if info, err := t.makePeerInfo(p.ID, p.Addrs[0]); err != nil {
 			// TODO: warn instead?
 			return nil, fmt.Errorf("Failed parsing '%v': %v", p, err)
@@ -68,15 +68,15 @@ func (t *torDHT) FindProviders(ctx context.Context, id []byte, maxCount int) ([]
 	return ret, ctx.Err()
 }
 
-func (t *torDHT) debugf(format string, args ...interface{}) {
+func (t *i2pDHT) debugf(format string, args ...interface{}) {
 	if t.debug {
 		log.Printf("[DEBUG] "+format, args...)
 	}
 }
 
-func (t *torDHT) applyPeerInfo() error {
+func (t *i2pDHT) applyPeerInfo() error {
 	if listenAddrs := t.ipfsHost.Network().ListenAddresses(); len(listenAddrs) > 1 {
-		return fmt.Errorf("Expected at most 1 listen onion address, got %v", listenAddrs)
+		return fmt.Errorf("Expected at most 1 listen garlic address, got %v", listenAddrs)
 	} else if len(listenAddrs) == 0 {
 		// no addr
 		return nil
@@ -88,16 +88,16 @@ func (t *torDHT) applyPeerInfo() error {
 	}
 }
 
-func (t *torDHT) makePeerInfo(id peer.ID, addr ma.Multiaddr) (*tordht.PeerInfo, error) {
-	ret := &tordht.PeerInfo{ID: id.Pretty()}
+func (t *i2pDHT) makePeerInfo(id peer.ID, addr ma.Multiaddr) (*i2pdht.PeerInfo, error) {
+	ret := &i2pdht.PeerInfo{ID: id.Pretty()}
 	var err error
-	if ret.OnionServiceID, ret.OnionPort, err = defaultAddrFormat.onionInfo(addr); err != nil {
+	if ret.EepServiceID, ret.EepPort, err = defaultAddrFormat.garlicInfo(addr); err != nil {
 		return nil, err
 	}
 	return ret, nil
 }
 
-func (t *torDHT) connectPeers(ctx context.Context, peers []*tordht.PeerInfo, minRequired int) error {
+func (t *i2pDHT) connectPeers(ctx context.Context, peers []*i2pdht.PeerInfo, minRequired int) error {
 	if len(peers) < minRequired {
 		minRequired = len(peers)
 	}
@@ -108,7 +108,7 @@ func (t *torDHT) connectPeers(ctx context.Context, peers []*tordht.PeerInfo, min
 		// There may be an inexplicable race here so I sleep a tad
 		// TODO: investigate
 		time.Sleep(100 * time.Millisecond)
-		go func(peer *tordht.PeerInfo) {
+		go func(peer *i2pdht.PeerInfo) {
 			t.debugf("Attempting to connect to peer %v", peer)
 			if err := t.connectPeer(ctx, peer); err != nil {
 				t.debugf("Failed connecting to peer %v: %v", err)
@@ -142,7 +142,7 @@ func (t *torDHT) connectPeers(ctx context.Context, peers []*tordht.PeerInfo, min
 	}
 }
 
-func (t *torDHT) connectPeer(ctx context.Context, peerInfo *tordht.PeerInfo) error {
+func (t *i2pDHT) connectPeer(ctx context.Context, peerInfo *i2pdht.PeerInfo) error {
 	if peer, err := t.addPeer(peerInfo); err != nil {
 		return err
 	} else {
@@ -150,9 +150,9 @@ func (t *torDHT) connectPeer(ctx context.Context, peerInfo *tordht.PeerInfo) err
 	}
 }
 
-func (t *torDHT) addPeer(peerInfo *tordht.PeerInfo) (*peerstore.PeerInfo, error) {
+func (t *i2pDHT) addPeer(peerInfo *i2pdht.PeerInfo) (*peerstore.PeerInfo, error) {
 	ipfsAddrStr := fmt.Sprintf("%v/ws/ipfs/%v",
-		defaultAddrFormat.onionAddr(peerInfo.OnionServiceID, peerInfo.OnionPort), peerInfo.ID)
+		defaultAddrFormat.garlicAddr(peerInfo.EepServiceID, peerInfo.EepPort), peerInfo.ID)
 	if ipfsAddr, err := addr.ParseString(ipfsAddrStr); err != nil {
 		return nil, err
 	} else if peer, err := peerstore.InfoFromP2pAddr(ipfsAddr.Multiaddr()); err != nil {
