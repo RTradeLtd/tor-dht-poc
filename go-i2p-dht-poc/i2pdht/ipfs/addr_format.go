@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-    "github.com/cretz/bine/torutil"
+	"github.com/cretz/bine/torutil"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 )

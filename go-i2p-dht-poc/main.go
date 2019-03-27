@@ -6,9 +6,9 @@ import (
 	"log"
 	"os"
 
-	//"github.com/eyedeekay/sam3"
 	"github.com/cretz/tor-dht-poc/go-i2p-dht-poc/i2pdht"
 	"github.com/cretz/tor-dht-poc/go-i2p-dht-poc/i2pdht/ipfs"
+	"github.com/eyedeekay/sam3"
 )
 
 // Change to true to see lots of logs
@@ -59,7 +59,7 @@ func provide(args []string) error {
 	for i := 0; i < len(dhts); i++ {
 		// Start DHT
 		conf := &i2pdht.DHTConf{
-			Tor:            samI2P,
+			I2P:            samI2P,
 			Verbose:        debug,
 			BootstrapPeers: make([]*i2pdht.PeerInfo, len(prevPeers)),
 		}
@@ -107,11 +107,11 @@ func find(args []string) error {
 		}
 	}
 
-	// Fire up tor
-	if dhtConf.Tor, err = startI2P(ctx, "data-dir-temp-find"); err != nil {
+	// Fire up i2p
+	if dhtConf.I2P, err = startI2P(ctx, "data-dir-temp-find"); err != nil {
 		return fmt.Errorf("Failed starting tor: %v", err)
 	}
-	defer dhtConf.Tor.Close()
+	defer dhtConf.I2P.Close()
 
 	// Make a client-only DHT
 	log.Printf("Creating DHT and connecting to peers\n")
@@ -131,14 +131,14 @@ func find(args []string) error {
 	return nil
 }
 
-func startI2P(ctx context.Context, dataDir string) (*tor.Tor, error) {
-	startConf := &tor.StartConf{DataDir: dataDir}
+func startI2P(ctx context.Context, samAddr string) (*sam3.SAM, error) {
+	/*startConf := &tor.StartConf{DataDir: dataDir}
 	if debug {
 		impl.ApplyDebugLogging()
 		startConf.NoHush = true
 		startConf.DebugWriter = os.Stderr
-	}
-	return tor.Start(ctx, startConf)
+	}*/
+	return sam3.NewSAM(samAddr)
 }
 
 func rawid(args []string) error {

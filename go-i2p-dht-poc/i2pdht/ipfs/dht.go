@@ -14,8 +14,8 @@ import (
 
 	ma "github.com/multiformats/go-multiaddr"
 
+	"github.com/eyedeekay/sam3"
 	addr "github.com/ipfs/go-ipfs-addr"
-    "github.com/eyedeekay/sam3"
 )
 
 type i2pDHT struct {
