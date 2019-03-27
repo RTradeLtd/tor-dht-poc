@@ -131,11 +131,12 @@ func (t *I2PTransport) CanDial(addr ma.Multiaddr) bool {
 func (t *I2PTransport) Listen(laddr ma.Multiaddr) (transport.Listener, error) {
 	// TODO: support a bunch of config options on this if we want
 	log.Printf("Called listen for %v", laddr)
-	if val, err := laddr.ValueForProtocol(ma.P_GARLIC64); err != nil {
+	//if val, err := laddr.ValueForProtocol(ma.P_GARLIC64); err != nil {
+	if _, err := laddr.ValueForProtocol(ma.P_GARLIC64); err != nil {
 		return nil, fmt.Errorf("Unable to get protocol value: %v", err)
-	} else if val != "" {
+	} /*else if val != "" {
 		return nil, fmt.Errorf("Must be '/garlic64', got '/garlic64/%v'", val)
-	}
+	}*/
 	// Listen with version 3, wait 1 min for bootstrap
 	//ctx, cancelFn := context.WithTimeout(context.Background(), 1*time.Minute)
 	//defer cancelFn()

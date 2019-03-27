@@ -58,8 +58,13 @@ func provide(args []string) error {
 	prevPeers := []*i2pdht.PeerInfo{}
 	for i := 0; i < len(dhts); i++ {
 		// Start DHT
+        k, e := samI2P.NewKeys(sam3.Sig_EdDSA_SHA512_Ed25519)
+        if e != nil{
+            return e
+        }
 		conf := &i2pdht.DHTConf{
 			I2P:            samI2P,
+            I2PKeys:        &k,
 			Verbose:        debug,
 			BootstrapPeers: make([]*i2pdht.PeerInfo, len(prevPeers)),
 		}

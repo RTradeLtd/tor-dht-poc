@@ -60,7 +60,7 @@ func (impl) NewDHT(ctx context.Context, conf *i2pdht.DHTConf) (i2pdht.DHT, error
 	}
 	if !conf.ClientOnly {
 		// Add an address to listen to
-		garlicListenAddr, err := ma.NewMultiaddr("/garlic64")
+		garlicListenAddr, err := ma.NewMultiaddr("/garlic64/"+conf.I2PKeys.Addr().Base64())
 		if err != nil {
 			return nil, err
 		}
