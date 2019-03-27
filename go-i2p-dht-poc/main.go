@@ -46,7 +46,7 @@ func provide(args []string) error {
 	defer cancelFn()
 
 	// Fire up tor
-	samI2P, err := startI2P(ctx, "data-dir-temp-provide")
+	samI2P, err := startI2P(ctx, "127.0.0.1:7656")
 	if err != nil {
 		return fmt.Errorf("Failed starting tor: %v", err)
 	}
@@ -108,8 +108,8 @@ func find(args []string) error {
 	}
 
 	// Fire up i2p
-	if dhtConf.I2P, err = startI2P(ctx, "data-dir-temp-find"); err != nil {
-		return fmt.Errorf("Failed starting tor: %v", err)
+	if dhtConf.I2P, err = startI2P(ctx, "127.0.0.1:7656"); err != nil {
+		return fmt.Errorf("Failed connecting to SAM: %v", err)
 	}
 	defer dhtConf.I2P.Close()
 

@@ -1,5 +1,6 @@
 package ipfs
 
+/*
 import (
 	"encoding/base32"
 	"fmt"
@@ -20,10 +21,10 @@ func init() {
 	if err := ma.AddProtocol(garlicListenProto); err != nil {
 		panic(fmt.Errorf("Failed adding garlicListen protocol: %v", err))
 	} else if garlicListenAddr, err = ma.NewMultiaddr("/garlicListen"); err != nil {
-		panic(fmt.Errorf("Failed creating garlicListen addr: %v", err))
+		panic(fmt.Errorf("Failed creating garlicListen addr: %v err))
 	}
 	// Change existing garlic protocol to support v3 and be more lenient when transcoding
-	//	ma.TranscoderOnion = ma.NewTranscoderFromFunctions(garlicStringToBytes, garlicBytesToString, nil)
+	/*ma.TranscoderGarlic64 = ma.NewTranscoderFromFunctions(garlicStringToBytes, garlicBytesToString, nil)
 	for _, p := range ma.Protocols {
 		if p.Code == ma.P_GARLIC64 {
 			p.Size = ma.LengthPrefixedVarSize
@@ -32,7 +33,7 @@ func init() {
 		}
 	}
 }
-
+*/
 /*
 func garlicStringToBytes(str string) ([]byte, error) {
 	// Just convert the whole thing for now

@@ -13,6 +13,7 @@ import (
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
 	routed "github.com/libp2p/go-libp2p/p2p/host/routed"
+	ma "github.com/multiformats/go-multiaddr"
 	multihash "github.com/multiformats/go-multihash"
 	mplex "github.com/whyrusleeping/go-smux-multiplex"
 )
@@ -59,6 +60,10 @@ func (impl) NewDHT(ctx context.Context, conf *i2pdht.DHTConf) (i2pdht.DHT, error
 	}
 	if !conf.ClientOnly {
 		// Add an address to listen to
+		garlicListenAddr, err := ma.NewMultiaddr("/garlic64")
+		if err != nil {
+			return nil, err
+		}
 		hostOpts = append(hostOpts, libp2p.ListenAddrs(garlicListenAddr))
 	}
 	if t.ipfsHost, err = libp2p.New(ctx, hostOpts...); err != nil {
