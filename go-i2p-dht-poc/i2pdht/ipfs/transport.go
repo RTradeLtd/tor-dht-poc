@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
-    "math/rand"
-    "math"
 
 	"github.com/cretz/tor-dht-poc/go-i2p-dht-poc/i2pdht/ipfs/websocket"
 	gorillaws "github.com/gorilla/websocket"
@@ -51,7 +50,12 @@ func NewI2PTransport(samI2P *sam3.SAM, conf *I2PTransportConf) func(*upgrader.Up
 	return func(upgrader *upgrader.Upgrader) *I2PTransport {
 		log.Printf("Creating transport with upgrader: %v", upgrader)
 		if conf == nil {
-			conf = &I2PTransportConf{}
+            var err error
+            conf = &I2PTransportConf{}
+            conf.keys, err = samI2P.NewKeys(sam3.Sig_EdDSA_SHA512_Ed25519)
+            if err != nil {
+                panic(err)
+            }
 		}
 		return &I2PTransport{
 			samI2P:   samI2P,
@@ -104,7 +108,11 @@ func (t *I2PTransport) Dial(ctx context.Context, raddr ma.Multiaddr, p peer.ID) 
 }
 
 func NewID() string {
-	return strconv.Itoa(int(rand.Int31n(math.MaxInt32)))
+	b := make([]byte, 12)
+	for i := range b {
+		b[i] = "abcdefghijklmnopqrstuvwxyz"[rand.Intn(len("abcdefghijklmnopqrstuvwxyz"))]
+	}
+	return "dht" + string(b)
 }
 
 func (t *I2PTransport) initDialers(ctx context.Context) error {
@@ -115,11 +123,7 @@ func (t *I2PTransport) initDialers(ctx context.Context) error {
 		return nil
 	}
 	var err error
-	t.conf.keys, err = t.samI2P.NewKeys(sam3.Sig_EdDSA_SHA512_Ed25519)
-	if err != nil {
-		return err
-	}
-	if t.i2pDialer, err = t.samI2P.NewStreamSessionWithSignature("testdht" + NewID(), t.conf.keys, []string{}, sam3.Sig_EdDSA_SHA512_Ed25519); err != nil {
+	if t.i2pDialer, err = t.samI2P.NewStreamSessionWithSignature(NewID(), t.conf.keys, []string{}, sam3.Sig_EdDSA_SHA512_Ed25519); err != nil {
 		return fmt.Errorf("Failed creating samv3 StreamSession: %v", err)
 	}
 	// Create web socket dialer if needed
@@ -140,12 +144,14 @@ func (t *I2PTransport) CanDial(addr ma.Multiaddr) bool {
 }
 
 func (t *I2PTransport) Listen(laddr ma.Multiaddr) (transport.Listener, error) {
-    // Init the dialers
-	if err := t.initDialers(nil); err != nil {
-		log.Printf("Failed initializing dialers: %v", err)
-		return nil, err
-	}
-    // TODO: support a bunch of config options on this if we want
+	// Init the dialers
+	var err error
+	//if t.i2pDialer == nil {
+		if t.i2pDialer, err = t.samI2P.NewStreamSessionWithSignature(NewID(), t.conf.keys, []string{}, sam3.Sig_EdDSA_SHA512_Ed25519); err != nil {
+			return nil, fmt.Errorf("Failed creating samv3 StreamSession: %v", err)
+		}
+	//}
+	// TODO: support a bunch of config options on this if we want
 	log.Printf("Called listen for %v", laddr)
 	//if val, err := laddr.ValueForProtocol(ma.P_GARLIC64); err != nil {
 	if _, err := laddr.ValueForProtocol(ma.P_GARLIC64); err != nil {
