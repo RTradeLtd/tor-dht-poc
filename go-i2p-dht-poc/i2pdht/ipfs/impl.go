@@ -16,6 +16,8 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	multihash "github.com/multiformats/go-multihash"
 	mplex "github.com/whyrusleeping/go-smux-multiplex"
+
+	"github.com/eyedeekay/sam3"
 )
 
 type impl struct{}
@@ -49,9 +51,20 @@ func (impl) NewDHT(ctx context.Context, conf *i2pdht.DHTConf) (i2pdht.DHT, error
 	}()
 
 	// Create the host with only the i2p transport
+	samI2P, err := sam3.NewSAM("127.0.0.1:7656")
+	if err != nil {
+
+		return nil, err
+	}
+	defer samI2P.Close()
 	t.debugf("Creating host")
+	k, err := samI2P.NewKeys(sam3.Sig_EdDSA_SHA512_Ed25519)
+	if err != nil {
+		return nil, err
+	}
 	transportConf := &I2PTransportConf{
 		WebSocket: true,
+		keys:      k,
 	}
 	hostOpts := []libp2p.Option{
 		// libp2p.NoSecurity,
@@ -60,7 +73,7 @@ func (impl) NewDHT(ctx context.Context, conf *i2pdht.DHTConf) (i2pdht.DHT, error
 	}
 	if !conf.ClientOnly {
 		// Add an address to listen to
-		garlicListenAddr, err := ma.NewMultiaddr("/garlic64/"+conf.I2PKeys.Addr().Base64())
+		garlicListenAddr, err := ma.NewMultiaddr("/garlic64/" + transportConf.keys.Addr().Base64())
 		if err != nil {
 			return nil, err
 		}

@@ -2,9 +2,7 @@ package ipfs
 
 import (
 	"fmt"
-	"strconv"
 
-	"github.com/cretz/bine/torutil"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -18,17 +16,15 @@ var defaultAddrFormat addrFormat = addrFormatProtocol{}
 type addrFormatProtocol struct{}
 
 func (addrFormatProtocol) garlicInfo(addr ma.Multiaddr) (string, int, error) {
-	if garlicAddrStr, err := addr.ValueForProtocol(ma.P_GARLIC64); err != nil {
+    var garlicAddrStr string
+    var err error
+	if garlicAddrStr, err = addr.ValueForProtocol(ma.P_GARLIC64); err != nil {
 		return "", -1, fmt.Errorf("Failed getting garlic info from %v: %v", addr, err)
-	} else if id, portStr, ok := torutil.PartitionString(garlicAddrStr, ':'); !ok {
-		return "", -1, fmt.Errorf("Missing port on %v", garlicAddrStr)
-	} else if port, portErr := strconv.Atoi(portStr); portErr != nil {
-		return "", -1, fmt.Errorf("Invalid port '%v': %v", portStr, portErr)
-	} else {
-		return id, port, nil
 	}
+	return garlicAddrStr, 0, nil
+
 }
 
-func (addrFormatProtocol) garlicAddr(id string, port int) string {
-	return fmt.Sprintf("/garlic64/%v/tcp/%v", id, port)
+func (addrFormatProtocol) garlicAddr(id string, unused int) string {
+	return fmt.Sprintf("/garlic64/%v", id)
 }

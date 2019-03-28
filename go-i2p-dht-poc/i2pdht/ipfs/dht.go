@@ -75,12 +75,12 @@ func (t *i2pDHT) debugf(format string, args ...interface{}) {
 }
 
 func (t *i2pDHT) applyPeerInfo() error {
-	if listenAddrs := t.ipfsHost.Network().ListenAddresses(); len(listenAddrs) > 1 {
+	if listenAddrs := t.ipfsHost.Network().ListenAddresses(); len(listenAddrs) > 2 {
 		return fmt.Errorf("Expected at most 1 listen garlic address, got %v", listenAddrs)
 	} else if len(listenAddrs) == 0 {
 		// no addr
 		return nil
-	} else if info, err := t.makePeerInfo(t.ipfsHost.ID(), listenAddrs[0]); err != nil {
+	} else if info, err := t.makePeerInfo(t.ipfsHost.ID(), listenAddrs[1]); err != nil {
 		return err
 	} else {
 		t.peerInfo = info

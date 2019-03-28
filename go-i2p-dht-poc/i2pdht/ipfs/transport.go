@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+    "math/rand"
+    "math"
 
 	"github.com/cretz/tor-dht-poc/go-i2p-dht-poc/i2pdht/ipfs/websocket"
 	gorillaws "github.com/gorilla/websocket"
@@ -37,6 +39,7 @@ type I2PTransport struct {
 
 type I2PTransportConf struct {
 	WebSocket bool
+	keys      sam3.I2PKeys
 }
 
 var EepMultiaddrFormat = mafmt.Base(ma.P_GARLIC64)
@@ -50,7 +53,11 @@ func NewI2PTransport(samI2P *sam3.SAM, conf *I2PTransportConf) func(*upgrader.Up
 		if conf == nil {
 			conf = &I2PTransportConf{}
 		}
-		return &I2PTransport{samI2P: samI2P, conf: conf, upgrader: upgrader}
+		return &I2PTransport{
+			samI2P:   samI2P,
+			conf:     conf,
+			upgrader: upgrader,
+		}
 	}
 }
 
@@ -96,6 +103,10 @@ func (t *I2PTransport) Dial(ctx context.Context, raddr ma.Multiaddr, p peer.ID) 
 	}
 }
 
+func NewID() string {
+	return strconv.Itoa(int(rand.Int31n(math.MaxInt32)))
+}
+
 func (t *I2PTransport) initDialers(ctx context.Context) error {
 	t.dialerLock.Lock()
 	defer t.dialerLock.Unlock()
@@ -103,12 +114,12 @@ func (t *I2PTransport) initDialers(ctx context.Context) error {
 	if t.i2pDialer != nil {
 		return nil
 	}
-	//var err error
-	keys, err := t.samI2P.NewKeys(sam3.Sig_EdDSA_SHA512_Ed25519)
+	var err error
+	t.conf.keys, err = t.samI2P.NewKeys(sam3.Sig_EdDSA_SHA512_Ed25519)
 	if err != nil {
 		return err
 	}
-	if t.i2pDialer, err = t.samI2P.NewStreamSessionWithSignature("testdht", keys, []string{}, sam3.Sig_EdDSA_SHA512_Ed25519); err != nil {
+	if t.i2pDialer, err = t.samI2P.NewStreamSessionWithSignature("testdht" + NewID(), t.conf.keys, []string{}, sam3.Sig_EdDSA_SHA512_Ed25519); err != nil {
 		return fmt.Errorf("Failed creating samv3 StreamSession: %v", err)
 	}
 	// Create web socket dialer if needed
@@ -129,18 +140,18 @@ func (t *I2PTransport) CanDial(addr ma.Multiaddr) bool {
 }
 
 func (t *I2PTransport) Listen(laddr ma.Multiaddr) (transport.Listener, error) {
-	// TODO: support a bunch of config options on this if we want
+    // Init the dialers
+	if err := t.initDialers(nil); err != nil {
+		log.Printf("Failed initializing dialers: %v", err)
+		return nil, err
+	}
+    // TODO: support a bunch of config options on this if we want
 	log.Printf("Called listen for %v", laddr)
 	//if val, err := laddr.ValueForProtocol(ma.P_GARLIC64); err != nil {
 	if _, err := laddr.ValueForProtocol(ma.P_GARLIC64); err != nil {
 		return nil, fmt.Errorf("Unable to get protocol value: %v", err)
-	} /*else if val != "" {
-		return nil, fmt.Errorf("Must be '/garlic64', got '/garlic64/%v'", val)
-	}*/
-	// Listen with version 3, wait 1 min for bootstrap
-	//ctx, cancelFn := context.WithTimeout(context.Background(), 1*time.Minute)
-	//defer cancelFn()
-	garlic, err := t.i2pDialer.Listen() //ctx, &tor.ListenConf{Version3: true})
+	}
+	garlic, err := t.i2pDialer.Listen()
 	if err != nil {
 		log.Printf("Failed creating garlic service: %v", err)
 		return nil, err

@@ -46,7 +46,7 @@ func provide(args []string) error {
 	defer cancelFn()
 
 	// Fire up tor
-	samI2P, err := startI2P(ctx, "127.0.0.1:7656")
+	samI2P, err := sam3.NewSAM("127.0.0.1:7656")
 	if err != nil {
 		return fmt.Errorf("Failed starting tor: %v", err)
 	}
@@ -58,13 +58,8 @@ func provide(args []string) error {
 	prevPeers := []*i2pdht.PeerInfo{}
 	for i := 0; i < len(dhts); i++ {
 		// Start DHT
-        k, e := samI2P.NewKeys(sam3.Sig_EdDSA_SHA512_Ed25519)
-        if e != nil{
-            return e
-        }
 		conf := &i2pdht.DHTConf{
 			I2P:            samI2P,
-            I2PKeys:        &k,
 			Verbose:        debug,
 			BootstrapPeers: make([]*i2pdht.PeerInfo, len(prevPeers)),
 		}
@@ -113,7 +108,7 @@ func find(args []string) error {
 	}
 
 	// Fire up i2p
-	if dhtConf.I2P, err = startI2P(ctx, "127.0.0.1:7656"); err != nil {
+	if dhtConf.I2P, err = sam3.NewSAM("127.0.0.1:7656"); err != nil {
 		return fmt.Errorf("Failed connecting to SAM: %v", err)
 	}
 	defer dhtConf.I2P.Close()
@@ -134,16 +129,6 @@ func find(args []string) error {
 		log.Printf("Found data ID on %v\n", provider)
 	}
 	return nil
-}
-
-func startI2P(ctx context.Context, samAddr string) (*sam3.SAM, error) {
-	/*startConf := &tor.StartConf{DataDir: dataDir}
-	if debug {
-		impl.ApplyDebugLogging()
-		startConf.NoHush = true
-		startConf.DebugWriter = os.Stderr
-	}*/
-	return sam3.NewSAM(samAddr)
 }
 
 func rawid(args []string) error {
