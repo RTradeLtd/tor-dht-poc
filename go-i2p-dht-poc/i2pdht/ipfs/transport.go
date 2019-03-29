@@ -71,7 +71,7 @@ func (t *I2PTransport) Dial(ctx context.Context, raddr ma.Multiaddr, p peer.ID) 
 	if garlicID, port, err := defaultAddrFormat.garlicInfo(raddr); err != nil {
 		return nil, err
 	} else {
-		addr = fmt.Sprintf("%v.garlic:%v", garlicID, port)
+		addr = fmt.Sprintf("/garlic32/%v/tcp/%v", garlicID, port)
 	}
 	// Init the dialers
 	if err := t.initDialers(ctx); err != nil {
@@ -146,11 +146,11 @@ func (t *I2PTransport) CanDial(addr ma.Multiaddr) bool {
 func (t *I2PTransport) Listen(laddr ma.Multiaddr) (transport.Listener, error) {
 	// Init the dialers
 	var err error
-	//if t.i2pDialer == nil {
-	if t.i2pDialer, err = t.samI2P.NewStreamSessionWithSignature(NewID(), t.conf.keys, []string{}, sam3.Sig_EdDSA_SHA512_Ed25519); err != nil {
-		return nil, fmt.Errorf("Failed creating samv3 StreamSession: %v", err)
+	if t.i2pDialer == nil {
+		if t.i2pDialer, err = t.samI2P.NewStreamSessionWithSignature(NewID(), t.conf.keys, []string{}, sam3.Sig_EdDSA_SHA512_Ed25519); err != nil {
+			return nil, fmt.Errorf("Failed creating samv3 StreamSession: %v", err)
+		}
 	}
-	//}
 	// TODO: support a bunch of config options on this if we want
 	log.Printf("Called listen for %v", laddr)
 	//if val, err := laddr.ValueForProtocol(ma.P_GARLIC32); err != nil {
