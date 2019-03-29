@@ -18,7 +18,7 @@ type addrFormatProtocol struct{}
 func (addrFormatProtocol) garlicInfo(addr ma.Multiaddr) (string, int, error) {
 	var garlicAddrStr string
 	var err error
-	if garlicAddrStr, err = addr.ValueForProtocol(ma.P_GARLIC64); err != nil {
+	if garlicAddrStr, err = addr.ValueForProtocol(ma.P_GARLIC32); err != nil {
 		return "", -1, fmt.Errorf("Failed getting garlic info from %v: %v", addr, err)
 	}
 	return garlicAddrStr, 0, nil
@@ -26,5 +26,5 @@ func (addrFormatProtocol) garlicInfo(addr ma.Multiaddr) (string, int, error) {
 }
 
 func (addrFormatProtocol) garlicAddr(id string, unused int) string {
-	return fmt.Sprintf("/garlic64/%v", id)
+	return fmt.Sprintf("/garlic32/%v", id)
 }

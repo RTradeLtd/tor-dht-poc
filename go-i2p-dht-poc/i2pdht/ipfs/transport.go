@@ -41,7 +41,7 @@ type I2PTransportConf struct {
 	keys      sam3.I2PKeys
 }
 
-var EepMultiaddrFormat = mafmt.Base(ma.P_GARLIC64)
+var EepMultiaddrFormat = mafmt.Base(ma.P_GARLIC32)
 var I2PMultiaddrFormat = mafmt.Or(EepMultiaddrFormat, mafmt.TCP)
 
 var _ transport.Transport = &I2PTransport{}
@@ -50,12 +50,12 @@ func NewI2PTransport(samI2P *sam3.SAM, conf *I2PTransportConf) func(*upgrader.Up
 	return func(upgrader *upgrader.Upgrader) *I2PTransport {
 		log.Printf("Creating transport with upgrader: %v", upgrader)
 		if conf == nil {
-            var err error
-            conf = &I2PTransportConf{}
-            conf.keys, err = samI2P.NewKeys(sam3.Sig_EdDSA_SHA512_Ed25519)
-            if err != nil {
-                panic(err)
-            }
+			var err error
+			conf = &I2PTransportConf{}
+			conf.keys, err = samI2P.NewKeys(sam3.Sig_EdDSA_SHA512_Ed25519)
+			if err != nil {
+				panic(err)
+			}
 		}
 		return &I2PTransport{
 			samI2P:   samI2P,
@@ -147,14 +147,14 @@ func (t *I2PTransport) Listen(laddr ma.Multiaddr) (transport.Listener, error) {
 	// Init the dialers
 	var err error
 	//if t.i2pDialer == nil {
-		if t.i2pDialer, err = t.samI2P.NewStreamSessionWithSignature(NewID(), t.conf.keys, []string{}, sam3.Sig_EdDSA_SHA512_Ed25519); err != nil {
-			return nil, fmt.Errorf("Failed creating samv3 StreamSession: %v", err)
-		}
+	if t.i2pDialer, err = t.samI2P.NewStreamSessionWithSignature(NewID(), t.conf.keys, []string{}, sam3.Sig_EdDSA_SHA512_Ed25519); err != nil {
+		return nil, fmt.Errorf("Failed creating samv3 StreamSession: %v", err)
+	}
 	//}
 	// TODO: support a bunch of config options on this if we want
 	log.Printf("Called listen for %v", laddr)
-	//if val, err := laddr.ValueForProtocol(ma.P_GARLIC64); err != nil {
-	if _, err := laddr.ValueForProtocol(ma.P_GARLIC64); err != nil {
+	//if val, err := laddr.ValueForProtocol(ma.P_GARLIC32); err != nil {
+	if _, err := laddr.ValueForProtocol(ma.P_GARLIC32); err != nil {
 		return nil, fmt.Errorf("Unable to get protocol value: %v", err)
 	}
 	garlic, err := t.i2pDialer.Listen()
@@ -163,7 +163,7 @@ func (t *I2PTransport) Listen(laddr ma.Multiaddr) (transport.Listener, error) {
 		return nil, err
 	}
 
-	log.Printf("Listening on garlic: %v", t.i2pDialer.Addr().Base64())
+	log.Printf("Listening on garlic: %v", t.i2pDialer.Addr().Base32())
 	// Close it if there is another error in here
 	defer func() {
 		if err != nil {
@@ -175,7 +175,7 @@ func (t *I2PTransport) Listen(laddr ma.Multiaddr) (transport.Listener, error) {
 	// Return a listener
 	manetListen := &manetListener{transport: t, garlic: garlic, listener: garlic}
 	remoteaddr, _ := strconv.Atoi(garlic.To())
-	addrStr := defaultAddrFormat.garlicAddr(garlic.Addr().String(), remoteaddr)
+	addrStr := defaultAddrFormat.garlicAddr(trim(t.i2pDialer.Addr().Base32()), remoteaddr)
 	if t.conf.WebSocket {
 		addrStr += "/ws"
 	}
@@ -193,7 +193,7 @@ func (t *I2PTransport) Listen(laddr ma.Multiaddr) (transport.Listener, error) {
 	return manetListen.Upgrade(t.upgrader), nil
 }
 
-func (t *I2PTransport) Protocols() []int { return []int{ma.P_TCP, ma.P_GARLIC64} }
+func (t *I2PTransport) Protocols() []int { return []int{ma.P_TCP, ma.P_GARLIC32} }
 func (t *I2PTransport) Proxy() bool      { return true }
 
 type manetListener struct {
