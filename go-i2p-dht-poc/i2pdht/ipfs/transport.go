@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/whyrusleeping/mafmt"
 
 	"github.com/eyedeekay/sam3"
+	"github.com/eyedeekay/sam3/i2pkeys"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-transport"
 	ma "github.com/multiformats/go-multiaddr"
@@ -38,7 +38,7 @@ type I2PTransport struct {
 
 type I2PTransportConf struct {
 	WebSocket bool
-	keys      sam3.I2PKeys
+	keys      i2pkeys.I2PKeys
 }
 
 var EepMultiaddrFormat = mafmt.Base(ma.P_GARLIC32)
@@ -174,8 +174,8 @@ func (t *I2PTransport) Listen(laddr ma.Multiaddr) (transport.Listener, error) {
 
 	// Return a listener
 	manetListen := &manetListener{transport: t, garlic: garlic, listener: garlic}
-	remoteaddr, _ := strconv.Atoi(garlic.To())
-	addrStr := defaultAddrFormat.garlicAddr(trim(t.i2pDialer.Addr().Base32()), remoteaddr)
+//	remoteaddr, _ := strconv.Atoi(garlic.To())
+	addrStr := defaultAddrFormat.garlicAddr(trim(t.i2pDialer.Addr().Base32()), 0)
 	if t.conf.WebSocket {
 		addrStr += "/ws"
 	}

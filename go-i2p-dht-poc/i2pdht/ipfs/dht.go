@@ -9,6 +9,7 @@ import (
 	"github.com/cretz/tor-dht-poc/go-i2p-dht-poc/i2pdht"
 	host "github.com/libp2p/go-libp2p-host"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	//dht "github.com/RTradeLtd/go-libp2p-i2p-netdb"
 	peer "github.com/libp2p/go-libp2p-peer"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 
