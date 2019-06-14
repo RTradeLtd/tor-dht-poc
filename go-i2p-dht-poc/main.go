@@ -3,31 +3,27 @@ package main
 import (
 	"context"
 	"fmt"
+    "flag"
 	"log"
-	"os"
 
 	"github.com/cretz/tor-dht-poc/go-i2p-dht-poc/i2pdht"
 	"github.com/cretz/tor-dht-poc/go-i2p-dht-poc/i2pdht/ipfs"
 	"github.com/eyedeekay/sam3"
 )
 
-// Change to true to see lots of logs
-const debug = false
-const participatingPeerCount = 5
-const dataID = "tor-dht-poc-test"
-
 var impl i2pdht.Impl = ipfs.Impl
 
 func main() {
+    flag.Parse()
 	if err := run(); err != nil {
 		log.Fatal(err)
 	}
 }
 
 func run() error {
-	if len(os.Args) < 2 {
+	if len(flag.Args()) < 2 {
 		return fmt.Errorf("Expected 'provide' or 'find' command")
-	} else if cmd, subArgs := os.Args[1], os.Args[2:]; cmd == "provide" {
+	} else if cmd, subArgs := flag.Args()[1], flag.Args()[2:]; cmd == "provide" {
 		return provide(subArgs)
 	} else if cmd == "find" {
 		return find(subArgs)
@@ -54,13 +50,13 @@ func provide(args []string) error {
 
 	// Make multiple DHTs, passing the known set to the other ones for connecting
 	log.Printf("Creating %v peers", participatingPeerCount)
-	dhts := make([]i2pdht.DHT, participatingPeerCount)
+	dhts := make([]i2pdht.DHT, *participatingPeerCount)
 	prevPeers := []*i2pdht.PeerInfo{}
 	for i := 0; i < len(dhts); i++ {
 		// Start DHT
 		conf := &i2pdht.DHTConf{
 			I2P:            samI2P,
-			Verbose:        debug,
+			Verbose:        *debug,
 			BootstrapPeers: make([]*i2pdht.PeerInfo, len(prevPeers)),
 		}
 		copy(conf.BootstrapPeers, prevPeers)
@@ -76,11 +72,11 @@ func provide(args []string) error {
 
 	// Have a couple provide our key
 	log.Printf("Providing key on the first one (%v)\n", dhts[0].PeerInfo())
-	if err = dhts[0].Provide(ctx, []byte(dataID)); err != nil {
+	if err = dhts[0].Provide(ctx, []byte(*dataID)); err != nil {
 		return fmt.Errorf("Failed providing on first: %v", err)
 	}
 	log.Printf("Providing key on the last one (%v)\n", dhts[len(dhts)-1].PeerInfo())
-	if err = dhts[len(dhts)-1].Provide(ctx, []byte(dataID)); err != nil {
+	if err = dhts[len(dhts)-1].Provide(ctx, []byte(*dataID)); err != nil {
 		return fmt.Errorf("Failed providing on last: %v", err)
 	}
 
@@ -98,7 +94,7 @@ func find(args []string) error {
 	var err error
 	dhtConf := &i2pdht.DHTConf{
 		ClientOnly:     true,
-		Verbose:        debug,
+		Verbose:        *debug,
 		BootstrapPeers: make([]*i2pdht.PeerInfo, len(args)),
 	}
 	for i := 0; i < len(args); i++ {
@@ -121,7 +117,7 @@ func find(args []string) error {
 	}
 
 	// Now find who is providing the id
-	providers, err := dht.FindProviders(ctx, []byte(dataID), 2)
+	providers, err := dht.FindProviders(ctx, []byte(*dataID), 2)
 	if err != nil {
 		return fmt.Errorf("Failed finding providers: %v", err)
 	}
@@ -135,7 +131,7 @@ func rawid(args []string) error {
 	if len(args) > 0 {
 		return fmt.Errorf("No args accepted for 'rawid' currently")
 	}
-	str, err := impl.RawStringDataID([]byte(dataID))
+	str, err := impl.RawStringDataID([]byte(*dataID))
 	if err != nil {
 		return err
 	}
