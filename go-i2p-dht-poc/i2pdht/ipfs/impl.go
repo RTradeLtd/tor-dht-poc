@@ -73,7 +73,7 @@ func (impl) NewDHT(ctx context.Context, conf *i2pdht.DHTConf) (i2pdht.DHT, error
 	}
 	if !conf.ClientOnly {
 		// Add an address to listen to
-		garlicListenAddr, err := ma.NewMultiaddr("/garlic32/" + transportConf.keys.Addr().Base32())
+		garlicListenAddr, err := ma.NewMultiaddr("/garlic32/" + trim(transportConf.keys.Addr().Base32()))
 		if err != nil {
 			return nil, err
 		}
