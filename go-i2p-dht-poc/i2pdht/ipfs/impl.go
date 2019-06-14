@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/RTradeLtd/go-garlic-tcp-transport"
 	"github.com/cretz/tor-dht-poc/go-i2p-dht-poc/i2pdht"
+
 	cid "github.com/ipfs/go-cid"
 	datastore "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/sync"
@@ -66,10 +68,15 @@ func (impl) NewDHT(ctx context.Context, conf *i2pdht.DHTConf) (i2pdht.DHT, error
 		WebSocket: true,
 		keys:      k,
 	}
+	garlicTransport, err := i2ptcp.NewGarlicTCPTransportFromOptions()
+	if err != nil {
+		return nil, err
+	}
 	hostOpts := []libp2p.Option{
 		// libp2p.NoSecurity,
 		libp2p.Muxer("/mplex/6.7.0", mplex.DefaultTransport),
-		libp2p.Transport(NewI2PTransport(conf.I2P, transportConf)),
+		//libp2p.Transport(NewI2PTransport(conf.I2P, transportConf)),
+		libp2p.Transport(garlicTransport),
 	}
 	if !conf.ClientOnly {
 		// Add an address to listen to

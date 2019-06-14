@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
-    "flag"
 	"log"
 
 	"github.com/cretz/tor-dht-poc/go-i2p-dht-poc/i2pdht"
@@ -14,7 +14,7 @@ import (
 var impl i2pdht.Impl = ipfs.Impl
 
 func main() {
-    flag.Parse()
+	flag.Parse()
 	if err := run(); err != nil {
 		log.Fatal(err)
 	}
