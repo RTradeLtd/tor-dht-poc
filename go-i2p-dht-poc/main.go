@@ -13,6 +13,8 @@ import (
 
 var impl i2pdht.Impl = ipfs.Impl
 
+var command = flag.String("c", "help", "provide, find, rawid")
+
 func main() {
 	flag.Parse()
 	if err := run(); err != nil {
@@ -21,16 +23,17 @@ func main() {
 }
 
 func run() error {
-	if len(flag.Args()) < 2 {
-		return fmt.Errorf("Expected 'provide' or 'find' command")
-	} else if cmd, subArgs := flag.Args()[1], flag.Args()[2:]; cmd == "provide" {
-		return provide(subArgs)
-	} else if cmd == "find" {
-		return find(subArgs)
-	} else if cmd == "rawid" {
-		return rawid(subArgs)
-	} else {
-		return fmt.Errorf("Invalid command '%v'", cmd)
+	switch *command {
+	case "provide":
+		return provide(flag.Args())
+	case "find":
+		return find(flag.Args())
+	case "rawid":
+		return rawid(flag.Args())
+	case "help":
+		return help(flag.Args())
+	default:
+		return fmt.Errorf("Invalid command '%v'", *command)
 	}
 }
 
@@ -44,12 +47,12 @@ func provide(args []string) error {
 	// Fire up tor
 	samI2P, err := sam3.NewSAM("127.0.0.1:7656")
 	if err != nil {
-		return fmt.Errorf("Failed starting tor: %v", err)
+		return fmt.Errorf("Failed starting SAM connection: %v", err)
 	}
 	defer samI2P.Close()
 
 	// Make multiple DHTs, passing the known set to the other ones for connecting
-	log.Printf("Creating %v peers", participatingPeerCount)
+	log.Printf("Creating %v peers", *participatingPeerCount)
 	dhts := make([]i2pdht.DHT, *participatingPeerCount)
 	prevPeers := []*i2pdht.PeerInfo{}
 	for i := 0; i < len(dhts); i++ {
@@ -136,5 +139,33 @@ func rawid(args []string) error {
 		return err
 	}
 	fmt.Printf("Raw string ID: %v\n", str)
+	return nil
+}
+
+func help(args []string) error {
+	x := "help"
+	if len(flag.Args()) > 0 {
+		x = flag.Args()[0]
+	}
+	switch x {
+	case "provide":
+		fmt.Println("provide")
+	case "find":
+		fmt.Println("find:")
+	case "rawid":
+		fmt.Println("rawid:")
+	default:
+		fmt.Println("# Help")
+		fmt.Println("")
+		fmt.Println("  -c: DHT command to invoke")
+		fmt.Println("  -d: debug mode")
+		fmt.Println("  -p: create p participating peers -n: tunnel name to use")
+		fmt.Println("")
+		fmt.Println("## Command")
+		fmt.Println("")
+		fmt.Println("  provide:")
+		fmt.Println("  find:")
+		fmt.Println("  rawid:")
+	}
 	return nil
 }

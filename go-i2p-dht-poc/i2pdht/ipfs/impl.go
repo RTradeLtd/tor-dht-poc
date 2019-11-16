@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/RTradeLtd/go-garlic-tcp-transport"
+	//"github.com/RTradeLtd/go-garlic-tcp-transport"
 	"github.com/cretz/tor-dht-poc/go-i2p-dht-poc/i2pdht"
 
 	cid "github.com/ipfs/go-cid"
@@ -17,9 +17,8 @@ import (
 	routed "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 	multihash "github.com/multiformats/go-multihash"
-	mplex "github.com/whyrusleeping/go-smux-multiplex"
-
-	"github.com/eyedeekay/sam3"
+	//mplex "github.com/whyrusleeping/go-smux-multiplex"
+	//"github.com/eyedeekay/sam3"
 )
 
 type impl struct{}
@@ -31,7 +30,7 @@ const minPeersRequired = 2
 
 func (impl) ApplyDebugLogging() {
 	log.SetDebugLogging()
-	// log.SetAllLoggers(logging.INFO)
+	//log.SetAllLoggers(logging.INFO)
 }
 
 func (impl) RawStringDataID(id []byte) (string, error) {
@@ -51,38 +50,21 @@ func (impl) NewDHT(ctx context.Context, conf *i2pdht.DHTConf) (i2pdht.DHT, error
 			t.Close()
 		}
 	}()
-
-	// Create the host with only the i2p transport
-	samI2P, err := sam3.NewSAM("127.0.0.1:7656")
+	garlicTransport, err := NewI2PTransport()
 	if err != nil {
-
-		return nil, err
-	}
-	defer samI2P.Close()
-	t.debugf("Creating host")
-	k, err := samI2P.NewKeys(sam3.Sig_EdDSA_SHA512_Ed25519)
-	if err != nil {
-		return nil, err
-	}
-	transportConf := &I2PTransportConf{
-		WebSocket: true,
-		keys:      k,
-	}
-	garlicTransport, err := i2ptcp.NewGarlicTCPTransportFromOptions()
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed setting up I2P Transport: %v", err)
 	}
 	hostOpts := []libp2p.Option{
-		// libp2p.NoSecurity,
-		libp2p.Muxer("/mplex/6.7.0", mplex.DefaultTransport),
-		//libp2p.Transport(NewI2PTransport(conf.I2P, transportConf)),
+		//libp2p.NoSecurity,
+		//libp2p.Muxer("/mplex/6.7.0", mplex.DefaultTransport),
+		//libp2p.Transport(),
 		libp2p.Transport(garlicTransport),
 	}
 	if !conf.ClientOnly {
 		// Add an address to listen to
-		garlicListenAddr, err := ma.NewMultiaddr("/garlic32/" + trim(transportConf.keys.Addr().Base32()))
+		garlicListenAddr, err := ma.NewMultiaddr("/garlic32/" + trim(garlicTransport.Base32()))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed listening on address: %v", err)
 		}
 		hostOpts = append(hostOpts, libp2p.ListenAddrs(garlicListenAddr))
 	}
